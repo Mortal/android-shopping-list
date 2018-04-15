@@ -6,7 +6,7 @@ import android.support.v7.app.AppCompatActivity
 
 class SettingsActivity: AppCompatActivity() {
     companion object {
-        const val KEY_ENDPOINT = "endpoint"
+        const val KEY_ENDPOINT = "dk.strova.mama.pref_endpoint"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
