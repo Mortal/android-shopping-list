@@ -66,14 +66,14 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         initRemoteHandler(sharedPreferences)
 
         val simpleItemTouchCallback = ItemSwipeCallback {
-            it.modelItem?.let {
+            it.position?.let { viewAdapter.modelItems?.get(it)?.let {
                 Log.d(TAG, "Deleting " + it)
                 localDataHandler.delete(it)
                 remoteDataHandler?.let { handler ->
                     swipeContainer.isRefreshing = true
                     handler.delete(it, this::setItemsFromRemote)
                 }
-            }
+            } }
         }
 
         val itemTouchHelper = ItemTouchHelper(simpleItemTouchCallback)
@@ -218,7 +218,7 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             val new = value!!
             if (field == null) {
                 field = new
-                notifyDataSetChanged()
+                notifyItemRangeInserted(0, new.size)
                 return
             }
             val old = field!!
@@ -232,29 +232,20 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
             }
             field = new
             val removed = old.size - i - j
-            when (removed) {
-                0 -> {}
-                1 -> notifyItemRemoved(i)
-                else -> notifyItemRangeRemoved(i, removed)
-            }
+            notifyItemRangeRemoved(i, removed)
             val inserted = new.size - i - j
-            when (inserted) {
-                0 -> {}
-                1 -> notifyItemInserted(i)
-                else -> notifyItemRangeInserted(i, inserted)
-            }
+            notifyItemRangeInserted(i, inserted)
         }
 
         class ViewHolder(
                 val root: CheckBox,
-                val save: (ShoppingListItem) -> Unit,
-                var modelItem: ShoppingListItem? = null
+                val onClick: (Int, Boolean) -> Unit,
+                var position: Int? = null
         ) : RecyclerView.ViewHolder(root) {
             init {
                 root.setOnClickListener {
-                    modelItem?.let {
-                        it.selected = root.isChecked
-                        save(it)
+                    position?.let {
+                        onClick(it, root.isChecked)
                     }
                 }
             }
@@ -263,15 +254,23 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
             val checkBox = LayoutInflater.from(parent.context)
                     .inflate(R.layout.my_text_view, parent, false) as CheckBox
-            return ViewHolder(checkBox, save)
+            return ViewHolder(checkBox, this::onClick)
         }
 
         override fun getItemCount() = modelItems?.size ?: 0
 
+        fun onClick(position: Int, selected: Boolean) {
+            modelItems?.get(position)?.let {
+                it.selected = selected
+                save(it)
+            }
+        }
+
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            holder.modelItem = modelItems?.get(position)
-            holder.root.isChecked = holder.modelItem?.selected == true
-            holder.root.text = holder.modelItem?.text ?: "Unknown"
+            val modelItem = modelItems?.get(position)
+            holder.position = position
+            holder.root.isChecked = modelItem?.selected == true
+            holder.root.text = modelItem?.text ?: "Unknown"
         }
 
     }
