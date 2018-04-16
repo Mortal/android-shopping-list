@@ -9,6 +9,6 @@
         android:title="Shopping list URL" />
     <Preference android:title="Developer documentation" >
         <intent android:action="android.intent.action.VIEW"
-            android:data="https://github.com/Mortal/mama" />
+            android:data="https://github.com/Mortal/android-shopping-list" />
     </Preference>
 </PreferenceScreen>
