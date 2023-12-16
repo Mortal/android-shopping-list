@@ -1,17 +1,17 @@
 package dk.strova.mama
 
-import android.arch.lifecycle.LiveData
-import android.arch.persistence.room.Room
 import android.os.Handler
 import android.os.Looper
-import android.support.v4.app.SupportActivity
+import androidx.activity.ComponentActivity
+import androidx.lifecycle.LiveData
+import androidx.room.Room
 import dk.strova.mama.localdb.Database
 import dk.strova.mama.localdb.ShoppingListItem
 import dk.strova.mama.localdb.ShoppingListItemDao
 
 private val DATABASE_NAME = "mama"
 
-class LocalDataHandler(activity: SupportActivity, looper: Looper): Handler(looper) {
+class LocalDataHandler(activity: ComponentActivity, looper: Looper): Handler(looper) {
     private lateinit var dao: ShoppingListItemDao
 
     init {

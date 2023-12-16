@@ -1,8 +1,8 @@
 package dk.strova.mama.localdb
 
-import android.arch.lifecycle.LiveData
-import android.arch.persistence.room.*
-import android.arch.persistence.room.OnConflictStrategy.REPLACE
+import androidx.lifecycle.LiveData
+import androidx.room.*
+import androidx.room.OnConflictStrategy.Companion.REPLACE
 
 @Dao
 interface ShoppingListItemDao {

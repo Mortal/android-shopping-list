@@ -1,31 +1,33 @@
 package dk.strova.mama
 
-import android.arch.lifecycle.Observer
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.os.HandlerThread
 import android.preference.PreferenceManager
-import android.support.design.widget.Snackbar
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
-import android.support.v7.widget.helper.ItemTouchHelper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.ViewGroup
 import android.widget.CheckBox
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Observer
+import androidx.recyclerview.widget.ItemTouchHelper
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.snackbar.Snackbar
+import dk.strova.mama.databinding.ActivityShoppingListBinding
+import dk.strova.mama.databinding.ContentShoppingListBinding
 import dk.strova.mama.localdb.ShoppingListItem
-import kotlinx.android.synthetic.main.activity_shopping_list.*
-import kotlinx.android.synthetic.main.content_shopping_list.*
 
 val TAG = "ShoppingList"
 
 class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceChangeListener {
 
     private lateinit var viewManager: LinearLayoutManager
+    private lateinit var binding: ActivityShoppingListBinding
+    private lateinit var content: ContentShoppingListBinding
 
     private lateinit var viewAdapter: MyAdapter
 
@@ -36,8 +38,12 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        binding = ActivityShoppingListBinding.inflate(layoutInflater)
+        content = ContentShoppingListBinding.inflate(layoutInflater)
+
         setContentView(R.layout.activity_shopping_list)
-        setSupportActionBar(toolbar)
+        setSupportActionBar(binding.toolbar)
 
         localDataThread = HandlerThread("LocalDataHandler")
         localDataThread.start()
@@ -47,14 +53,14 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
         viewManager = LinearLayoutManager(this)
 
         localDataHandler.liveAll {
-            it.observe(this, Observer {
-                runOnUiThread {
+            runOnUiThread {
+                it.observe(this, Observer {
                     viewAdapter.modelItems = it
-                }
-            })
+                })
+            }
         }
 
-        recyclerView.apply {
+        content.recyclerView.apply {
             setHasFixedSize(true)
             layoutManager = viewManager
             adapter = viewAdapter
@@ -70,19 +76,19 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
                 Log.d(TAG, "Deleting " + it)
                 localDataHandler.delete(it)
                 remoteDataHandler?.let { handler ->
-                    swipeContainer.isRefreshing = true
+                    binding.swipeContainer.isRefreshing = true
                     handler.delete(it, this::setItemsFromRemote)
                 }
             } }
         }
 
         val itemTouchHelper = ItemTouchHelper(simpleItemTouchCallback)
-        itemTouchHelper.attachToRecyclerView(recyclerView)
+        itemTouchHelper.attachToRecyclerView(content.recyclerView)
 
-        editText.setOnEditorActionListener { _, _, _ ->
+        content.editText.setOnEditorActionListener { _, _, _ ->
             addItemFromEditText()
         }
-        fab.setOnClickListener {
+        content.fab.setOnClickListener {
             addItemFromEditText()
         }
     }
@@ -101,14 +107,14 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     }
 
     private fun initRemoteHandler(sharedPreferences: SharedPreferences) {
-        val endpoint = sharedPreferences.getString(SettingsActivity.KEY_ENDPOINT, "").trim()
+        val endpoint = sharedPreferences.getString(SettingsActivity.KEY_ENDPOINT, "")!!.trim()
         if (endpoint.isEmpty()) {
             remoteDataHandler = null
-            swipeContainer.isEnabled = false
+            binding.swipeContainer.isEnabled = false
         } else {
             remoteDataHandler = RemoteDataHandler(this, remoteDataThread.looper, endpoint)
-            swipeContainer.isEnabled = true
-            swipeContainer.setOnRefreshListener {
+            binding.swipeContainer.isEnabled = true
+            binding.swipeContainer.setOnRefreshListener {
                 Log.i(TAG, "Registered refresh swipe")
                 remoteDataHandler!!.getAll(this::setItemsFromRemote)
             }
@@ -122,22 +128,22 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
     private fun setItemsFromRemote(items: List<String>) {
         localDataHandler.setItemsFromRemote(items)
-        swipeContainer.isRefreshing = false
+        binding.swipeContainer.isRefreshing = false
     }
 
     fun remoteError(text: String) {
-        Snackbar.make(fab, text, Snackbar.LENGTH_SHORT).show()
-        swipeContainer.isRefreshing = false
+        Snackbar.make(content.fab, text, Snackbar.LENGTH_SHORT).show()
+        binding.swipeContainer.isRefreshing = false
     }
 
     private fun addItemFromEditText(): Boolean {
-        val text = editText.text.toString().trim()
+        val text = content.editText.text.toString().trim()
         return if (text.isNotEmpty()) {
-            editText.text.clear()
+            content.editText.text.clear()
             val item = ShoppingListItem(text = text)
             localDataHandler.insert(item)
             remoteDataHandler?.let { handler ->
-                swipeContainer.isRefreshing = true
+                binding.swipeContainer.isRefreshing = true
                 handler.insert(item, this::setItemsFromRemote)
             }
             true
@@ -153,11 +159,11 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     ) {
 
         override fun onMove(
-                recyclerView: RecyclerView?,
-                viewHolder: RecyclerView.ViewHolder?,
-                target: RecyclerView.ViewHolder?)
-                : Boolean {
-            throw NotImplementedError()
+            recyclerView: RecyclerView,
+            viewHolder: RecyclerView.ViewHolder,
+            target: RecyclerView.ViewHolder
+        ): Boolean {
+            TODO("Not yet implemented")
         }
         override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
             val adapterPosition = viewHolder.adapterPosition
@@ -190,7 +196,7 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     private fun deleteAllItems(): Boolean {
         localDataHandler.deleteAndReturnAll() {
             remoteDataHandler?.let { handler ->
-                swipeContainer.isRefreshing = true
+                binding.swipeContainer.isRefreshing = true
                 handler.deleteList(it, this::setItemsFromRemote)
             }
         }
@@ -200,7 +206,7 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
     private fun deleteSelectedItems(): Boolean {
         localDataHandler.deleteAndReturnSelected() {
             remoteDataHandler?.let { handler ->
-                runOnUiThread { swipeContainer.isRefreshing = true }
+                runOnUiThread { binding.swipeContainer.isRefreshing = true }
                 handler.deleteList(it, this::setItemsFromRemote)
             }
         }
