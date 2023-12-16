@@ -44,6 +44,10 @@ class ShoppingList : AppCompatActivity(), SharedPreferences.OnSharedPreferenceCh
 
         setContentView(R.layout.activity_shopping_list)
         setSupportActionBar(binding.toolbar)
+        binding.toolbar.setOnMenuItemClickListener {
+            onOptionsItemSelected(it)
+        }
+        supportActionBar!!.setDisplayShowTitleEnabled(false)
 
         localDataThread = HandlerThread("LocalDataHandler")
         localDataThread.start()
